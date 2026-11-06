@@ -68,3 +68,50 @@ print(c.chat("复杂推理任务...", tier="pro"))  # 指定高档模型
 ## 贡献
 
 发现某个聚合站/模型的兼容性问题，欢迎开 issue 附上报错原文。
+# 429 Failover 为什么值得内置
+
+> 草稿，未经审批不发布到 GitHub。
+
+单一模型上游一挂，应用就跟着挂。最常见的不是「模型不够聪明」，而是这几类：
+
+- HTTP 429：真限流、余额耗尽、spend limit、TPM/RPM 超限。
+- HTTP 5xx / 529：上游过载或短暂故障。
+- 模型下线 / 改名：`model not found`，旧 slug 失效。
+- HTTP 200 但输出结构坏：content 为空、tool_calls 缺参数、finish_reason 异常。
+
+盲重试会拖垮队列。正确做法是先分类，再决定「等、换、停」。
+
+## 最小决策表
+
+| 返回 | 先看什么 | 动作 |
+|---|---|---|
+| 429 | `error.code`、`Retry-After`、余额/限额 | 真限流才退避；余额/额度问题立刻停并提示 |
+| 5xx / 529 | 上游状态、超时时间 | 快速失败，切备用模型 |
+| 404 / model not found | `/v1/models` 与控制台模型名 | 更新模型名，不反复撞旧名 |
+| 200 但结构坏 | content / finish_reason / tool_calls | 判为失败，切备用或直接报错 |
+
+## 最小 Python 逻辑
+
+```python
+def call_with_fallback(client, models, prompt):
+    for model in models:
+        r = client.chat(model, prompt)
+        if r.status == 429 and not r.retry_after:
+            continue                   # 可能是余额/额度问题，不盲重试
+        if r.status in (429, 500, 502, 503, 529):
+            continue                   # 切下一个模型
+        if r.status == 200 and r.content_valid:
+            return r
+    raise RuntimeError("全部上游不可用")
+```
+
+真正上线还要做：结构化日志、按内容 ID 归因、预算闸门、输出结构校验、流式断流处理。
+
+## 用一个统一入口少写一层胶水代码
+
+5PCloud 提供 OpenAI 兼容端点 `https://5pcloud.top/v1`。  
+如果你正在自己维护多个模型 Key 和 fallback 链，可以先拿体验额度跑一遍最小请求：
+
+https://5pcloud.top/register.html?utm_source=github&utm_medium=readme&utm_campaign=failover_20261106&utm_content=20261106_failover_github&utm_id=c_20261106_failover_github
+
+> 说明：Failover 原型目前在隔离环境验证，不代表线上已默认提供。不要把它当 SLA 承诺。
