@@ -113,3 +113,5 @@ def call_with_fallback(client, models, prompt):
 https://5pcloud.top/register.html?utm_source=github&utm_medium=readme&utm_campaign=failover_20261106&utm_content=20261106_failover_github&utm_id=c_20261106_failover_github
 
 > 说明：Failover 原型目前在隔离环境验证，不代表线上已默认提供。不要把它当 SLA 承诺。
+
+想看隔离验证和反馈问题：[429 Failover demo](docs/failover_demo.md)
