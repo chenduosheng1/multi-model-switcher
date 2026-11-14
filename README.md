@@ -115,3 +115,10 @@ https://5pcloud.top/register.html?utm_source=github&utm_medium=readme&utm_campai
 > 说明：Failover 原型目前在隔离环境验证，不代表线上已默认提供。不要把它当 SLA 承诺。
 
 想看隔离验证和反馈问题：[429 Failover demo](docs/failover_demo.md)
+
+## 上手文档合集
+
+- [5 分钟首调 Quickstart](docs/quickstart_5min.md) — 注册→拿 Key→跑通第一次调用
+- [429 排障树](docs/429_troubleshooting.md) — 限流/余额/客户端误报怎么分
+- [三端 Base URL 配置包](docs/baseurl_config_pack.md) — Cherry Studio / Open WebUI / n8n 模板
+- [429 Failover 隔离原型](docs/failover_demo.md) — 验证证据 + 反馈征集
